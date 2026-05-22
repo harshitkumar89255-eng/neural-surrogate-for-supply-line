@@ -5,9 +5,9 @@ BASE_CONFIG = {
     # ─────────────────────────────────────────
     "simulation": {
         "ticks": 100,
-        "random_seed": 5,
-        "backlog_enabled": False,
-        "lost_sales_enabled": True,  #if both true Backlog takes priority
+        "random_seed": 42,
+        "backlog_enabled": True,
+        "lost_sales_enabled": False,  #if both true Backlog takes priority
         "warmup_ticks": 10,
     },
 
@@ -204,7 +204,7 @@ BASE_CONFIG = {
         {
             "source": "W2", "target": "R3",
             "travel_time": 1,
-            "capacity": 80,
+            "capacity": 200,
             "delay_probability": 0.08,
             "transport_cost": 2,
             "congestion_threshold": 0.80,

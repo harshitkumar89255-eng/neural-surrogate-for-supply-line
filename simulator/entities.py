@@ -24,6 +24,10 @@ class Shipment:
     quantity:float
     route_id:str
     remaining_time:int
+    base_time:float
+    dispatch_tick:float
+    expected_tick:float
+    final_tick:float | None = None
     transport_cost:float=0
     delayed:bool=False
     delivered:bool=False

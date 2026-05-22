@@ -22,7 +22,8 @@ class Simulator:
         self.graph,self.route_lookup = build_supply_chain_graph(self.config)
         self.states = init_states(self.graph)
         self.route_states = init_route_states(self.route_lookup)
-        
+        self.demand_history = {}
+        self.completed_shipments_history = {}
         self.active_shipments = []
         self.active_demand_spikes = {}
         self.shipment_id = 1
@@ -45,15 +46,17 @@ class Simulator:
         
     def step(self,tick):
         self.reset_tick()
-        
-        retailer_demand = generate_retailer_demand(self.config,self.active_demand_spikes)
-        lost_sales = apply_demand(retailer_demand,self.states,self.config)  #in my code lost sales return a lost dict for lost sales i.e if retailer doesnt have enough items to meet the demand the shortfall will be lost if backlog is not enabled 
-        self.shipment_id = check_reorders(self.config,self.states,self.route_lookup,self.route_states,self.active_shipments,self.shipment_id)
-        delivered = advance_shipments(self.active_shipments,self.route_lookup)
-        lost_shipments = process(delivered,self.states) #process returns lost shipment if in any case more quantity is supplied than the available space
-        update_congestion(self.active_shipments,self.route_states,self.route_lookup)
         supplier_failure_disruption(self.config,self.states)
-        transport_disruption(self.config,self.route_states,self.route_lookup)
+        transport_disruption(self.config,self.route_states,self.route_lookup)        
+        retailer_demand = generate_retailer_demand(self.config,self.active_demand_spikes)
+        self.demand_history[tick] = retailer_demand
+        delivered = advance_shipments(self.active_shipments,self.route_lookup,tick)
+        self.completed_shipments_history[tick] = delivered
+        lost_shipments = process(delivered,self.states) #process returns lost shipment if in any case more quantity is supplied than the available space
+        lost_sales = apply_demand(retailer_demand,self.states,self.config)  #in my code lost sales return a lost dict for lost sales i.e if retailer doesnt have enough items to meet the demand the shortfall will be lost if backlog is not enabled 
+
+        self.shipment_id = check_reorders(self.config,self.states,self.route_lookup,self.route_states,self.active_shipments,self.shipment_id,tick)
+        update_congestion(self.active_shipments,self.route_states,self.route_lookup)
         replenish_supply(self.config,self.states)
         self.lost_sales_history[tick]=lost_sales
         self.lost_shipments_history[tick] = lost_shipments
@@ -66,5 +69,7 @@ class Simulator:
         return {
             'state_history': self.state_history,
             'lost_sales_history': self.lost_sales_history,
-            'lost_shipments_history': self.lost_shipments_history
+            'lost_shipments_history': self.lost_shipments_history,
+            'demand_history' : self.demand_history,
+            'completed_shipment_history': self.completed_shipments_history
         }

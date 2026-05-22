@@ -9,11 +9,12 @@ def supplier_failure_disruption(config,states):
                 s_state.disruption_remaining -= 1
                 if s_state.disruption_remaining <= 0:
                     s_state.disrupted = False
+                    s_state.disruption_remaining = 0
             else:
                 if random.random() < disruptions_config['probability']:
                     s_state.disrupted = True
                     s_state.disruption_count += 1
-                    s_state.disruption_remaining     = random.randint(disruptions_config['duration_min'], disruptions_config['duration_max'])-1
+                    s_state.disruption_remaining     = random.randint(disruptions_config['duration_min'], disruptions_config['duration_max'])
                 
             
 def transport_disruption(config,routestates,route_lookup):
@@ -25,11 +26,12 @@ def transport_disruption(config,routestates,route_lookup):
                 route_state.disruption_remaining -= 1
                 if route_state.disruption_remaining <= 0:
                     route_state.disrupted = False
+                    route_state.disruption_remaining = 0
             else:
                 if random.random() < disruptions_config['probability']:
                     route_state.disrupted = True
                     route_state.disruption_count += 1
-                    route_state.disruption_remaining = random.randint(disruptions_config['duration_min'], disruptions_config['duration_max'])-1
+                    route_state.disruption_remaining = random.randint(disruptions_config['duration_min'], disruptions_config['duration_max'])
                 
                 
 def supplier_fail_check(supplier_id,states):

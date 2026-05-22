@@ -23,18 +23,21 @@ def select_route(target, route_lookup, r_states, states, source=None):
     scored = [score_route(rid, rd, r_states) for rid, rd in candidates]
     return candidates[scored.index(min(scored))]
 
-def create_shipment(shipment_id,route_id,route_data,quantity,route_states):
+def create_shipment(shipment_id,route_id,route_data,quantity,route_states,tick):
     time = effective_travel_time(route_id,route_data,route_states)
     return Shipment(
         shipment_id=shipment_id,
         source=route_data['source'],
         target=route_data['target'],
         route_id=route_id,
+        base_time = route_data['travel_time'],
+        dispatch_tick=tick,
+        expected_tick=tick+route_data['travel_time'],
         quantity=quantity,
         remaining_time=time,
         transport_cost=route_data['transport_cost'] * quantity)
     
-def dispatch_shipment(shipment_id, target, quantity, route_lookup, route_states, active_shipments, config, states, source=None):
+def dispatch_shipment(shipment_id, target, quantity, route_lookup, route_states, active_shipments, config, states, tick,source=None):
     rid, rd = select_route(target, route_lookup, route_states, states, source)
     if rid is None:
         return shipment_id
@@ -49,7 +52,7 @@ def dispatch_shipment(shipment_id, target, quantity, route_lookup, route_states,
     states[sid].inventory -= dispatch_quantity
     states[sid].outgoing += dispatch_quantity
     states[sid].sent += dispatch_quantity
-    shipment = create_shipment(shipment_id, rid, rd, dispatch_quantity, route_states)
+    shipment = create_shipment(shipment_id, rid, rd, dispatch_quantity, route_states,tick)
     active_shipments.append(shipment)
     return shipment_id + 1
 
@@ -58,7 +61,7 @@ def apply_delay(shipment,route_data):
         shipment.delayed = True
         shipment.remaining_time += 1
         
-def advance_shipments(active_shipments,route_lookup):
+def advance_shipments(active_shipments,route_lookup,tick):
     delivered_shipments = []
     for shipment in active_shipments:
         route_data = route_lookup[shipment.route_id]
@@ -67,6 +70,7 @@ def advance_shipments(active_shipments,route_lookup):
         shipment.remaining_time -= 1
         if shipment.remaining_time <= 0:
             shipment.delivered = True
+            shipment.final_tick = tick
             delivered_shipments.append(shipment)
     for ds in delivered_shipments:
         active_shipments.remove(ds)

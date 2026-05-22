@@ -42,13 +42,16 @@ def apply_demand(retailer_demands, states, config):
             backlog_fill = min(r_state.backlog, r_state.inventory)
             r_state.inventory -= backlog_fill
             r_state.backlog -= backlog_fill
+            r_state.sent += backlog_fill
             
         available = r_state.inventory
         if demand <= available:
             r_state.inventory -= demand
+            r_state.sent += demand
         else:
             shortfall = demand - available
             r_state.inventory = 0
+            r_state.sent += available
             r_state.stockout += 1
             if backlog_enabled:
                 r_state.backlog += shortfall

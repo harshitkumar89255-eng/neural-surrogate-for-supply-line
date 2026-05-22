@@ -14,7 +14,7 @@ def in_transit_quantity(node_id, active_shipments):
     return sum(s.quantity for s in active_shipments if s.target == node_id)
 
 
-def check_reorders(config, states, route_lookup, route_states, active_shipments, shipment_id):
+def check_reorders(config, states, route_lookup, route_states, active_shipments, shipment_id,tick):
     st_lookup = build_st_lookup(route_lookup)
 
     for wid, wd in config['warehouses'].items():
@@ -29,7 +29,8 @@ def check_reorders(config, states, route_lookup, route_states, active_shipments,
         shipment_id = dispatch_shipment(
             shipment_id, target=wid, quantity=wd['reorder_quantity'],
             route_lookup=route_lookup, route_states=route_states,
-            active_shipments=active_shipments, config=config, states=states)
+            active_shipments=active_shipments, config=config, states=states,
+            tick=tick)
 
     for rid, rd in config['retailers'].items():
         r_state = states[rid]
@@ -56,6 +57,7 @@ def check_reorders(config, states, route_lookup, route_states, active_shipments,
             active_shipments=active_shipments,
             config=config,
             states=states,
-            source=best_wid)
+            source=best_wid,
+            tick = tick)
 
     return shipment_id
