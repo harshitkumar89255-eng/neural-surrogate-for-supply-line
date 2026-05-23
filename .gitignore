@@ -1,4 +1,9 @@
 simulator/__pycache__/
+configs/__pycache__/
+dataset/__pycache__/
+data/__pycache__/
+visualization/__pycache__/
+
 *.pyc
 .venv/
 env/
@@ -6,3 +11,4 @@ venv/
 .streamlit/
 saved_data/
 .vscode/
+test.ipynb

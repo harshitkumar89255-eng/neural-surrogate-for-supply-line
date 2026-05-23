@@ -214,25 +214,13 @@ BASE_CONFIG = {
         {
             "source": "W1", "target": "R3",
             "travel_time": 2,
-            "capacity": 80,
+            "capacity": 200,
             "delay_probability": 0.10,
-            "transport_cost": 4,
+            "transport_cost": 2,
             "congestion_threshold": 0.80,
             "congestion_delay_multiplier": 1.5,
             "is_primary": False
         }
     ],
-
-    # ─────────────────────────────────────────
-    # METRICS CONFIG
-    # ─────────────────────────────────────────
-    "metrics": {
-        "record_per_tick": True,
-        "record_per_run": True,
-        "cost_weights": {
-            "alpha": 1.0,
-            "beta": 1.0,
-            "gamma": 2.0
-        }
-    }
+        
 }
