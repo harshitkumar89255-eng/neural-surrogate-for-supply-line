@@ -1,62 +1,65 @@
-import copy
-import numpy as np 
+from dataset.config_generator import generate_normal_config
+import time
+from simulator.metrics import final_metrics
+import json
+import numpy as np
+from pathlib import Path
+from simulator.engine import Simulator
 
-def generate_normal_config(base_config,scenario_ranges):
-    config = copy.deepcopy(base_config)
-    ranges = copy.deepcopy(scenario_ranges['normal'])
+def generate_dataset(base_config,scenario_ranges,amount):
+    X_data = []
+    Y_data = []
+    time_taken = {}
+    base_seed = base_config.get('simulation', {}).get('random_seed')
+    config_rng = np.random.default_rng(base_seed)
+    for i in range(amount):
+        config = generate_normal_config(base_config,scenario_ranges,rng=config_rng)
+        if base_seed is not None:
+            config['simulation']['random_seed'] = base_seed + i
+        X = {}
+        for keys,values in config.items():
+            if keys == 'simulation':
+                X['ticks'] = values['ticks']
+                X['backlog_enabled'] = 1 if values['backlog_enabled'] else 0
+                X['lost_sales_enabled'] = 1 if values['lost_sales_enabled'] else 0 
 
-    for key, values in config.items():
-
-        if key == 'retailers':
-            for id, data in values.items():
-                sampled_capac = round(np.random.normal(data['capacity'],data['capacity'] * ranges['capacity_std_frac']))
+            if keys in ['suppliers','warehouses','retailers']:
+                for id,data in values.items():
+                    for key,value in data.items():
+                        if key in ['inventory','capacity','reliability','production_rate','reorder_point','reorder_quantity','processing_rate','demand_mean','demand_std']:
+                            X[f'{id}_{key}'] = value
             
-                data['capacity'] = max(1,sampled_capac)
-                data['inventory'] = round(data['capacity']/2)
-
-                sampled_mean = round(np.random.normal(data['demand_mean'],data['demand_mean'] * ranges['demand_std_frac']))
-                sampled_std = round(np.random.normal(data['demand_std'],data['demand_std']*ranges['demand_std_frac']))
-            
-                data['demand_mean'] = max(1,sampled_mean)
-                data['demand_std'] = max(1,sampled_std)
-
-                sampled_point = round(np.random.normal(data['reorder_point'],data['reorder_point'] * ranges['reorder_std_frac']))
-                qty = round(np.random.normal(data['reorder_quantity'],data['reorder_quantity']*ranges['reorder_std_frac']))
-    
-                data['reorder_point'] = max(1,sampled_point)           
-                data['reorder_quantity'] = max(1,qty)
-
-        if key == 'warehouses':
-            for id, data in values.items():
-                sampled_mean = round(np.random.normal(data['reorder_point'],data['reorder_point'] * ranges['reorder_std_frac']))
-                qty = round(np.random.normal(data['reorder_quantity'],data['reorder_quantity']*ranges['reorder_std_frac']))
-    
-                data['reorder_point'] = max(1,sampled_mean)           
-                data['reorder_quantity'] = max(1,qty)
-
-                sampled_capac = round(np.random.normal(data['capacity'],data['capacity'] * ranges['capacity_std_frac']))
-            
-                data['capacity'] = max(1,sampled_capac)
-                data['inventory'] = round(data['capacity']/2)
-                data['processing_rate'] = max(1,round(np.random.normal(data['processing_rate'],data['processing_rate']*ranges['processing_rate_std_frac'])))
-        if key =='routes':
-            for route in values:
-                route['delay_probability'] = np.random.normal(route['delay_probability'],ranges['delay_probability_std'])
-                route['delay_probability'] = max(0,route['delay_probability'])
-                route['delay_probability'] = min(route['delay_probability'],1)
-                route['travel_time'] = int(max(1,route['travel_time'] + np.random.choice([2,1,0,-1,-2])))
-                route['capacity'] = max(1,round(np.random.normal(route['capacity'],route['capacity']*ranges['capacity_std_frac'])))
-
-        if key == 'suppliers':
-            for id, data in values.items():
-            
-                sampled_capac = round(np.random.normal(data['capacity'],data['capacity'] * ranges['capacity_std_frac']))
-                data['capacity'] = max(1,sampled_capac)
-                data['inventory'] = data['capacity']
-            
-                data['reliability'] = np.random.normal(data['reliability'],data['reliability'] * ranges['reliability_std_frac'])
-                data['reliability'] = min(data['reliability'],1)
-                data['reliability'] = max(0,data['reliability'])
-                data['production_rate'] = max(1,round(np.random.normal(data['production_rate'],data['production_rate'] * ranges['production_rate_std_frac'])))
+            if keys == 'routes':
+                for id,data in enumerate(values):
+                    for key,value in data.items():
+                        if key in ['travel_time','delay_probability','capacity','transport_cost']:
+                            X[f'R_{id}_{key}'] = value
         
-    return config
+        sim = Simulator(config)
+        start_time = time.perf_counter()
+        results = sim.run()
+        end_time = time.perf_counter()
+
+        time_taken[i] = end_time - start_time
+        Y = final_metrics(results,sim.config,sim.route_lookup)
+
+
+        Y_data.append(Y)
+        X_data.append(X)
+    
+    dataset = {'X_data':X_data,
+            'Y_data':Y_data}
+    
+    dir = Path(__file__).resolve().parent
+    data_folder = dir.parent / "data"
+    data_folder.mkdir(exist_ok=True)
+    save_path = data_folder / "normal_dataset.json"
+    with open(save_path,mode='w') as f:
+        json.dump(dataset,f,indent=4)
+    return time_taken
+
+
+
+    
+
+    
